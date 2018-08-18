@@ -248,7 +248,7 @@ class U2F
 
         $signature = substr($rawReg, $offs);
 
-        $dataToVerify  = chr(0);
+        $dataToVerify  = pack('C', 0);
         $dataToVerify .= hash(static::HASH_ALGORITHM, $request->appId, true);
         $dataToVerify .= hash(static::HASH_ALGORITHM, $clientData, true);
         $dataToVerify .= $kh;
@@ -271,26 +271,27 @@ class U2F
      */
     public function getAuthenticateData(array $registrations): array
     {
-        $sigs = [];
+        $signatures = [];
 
         $challenge = Utility::createChallenge();
 
-        foreach ($registrations as $reg) {
-            if (!is_object($reg)) {
+        /** @var Registration $registration */
+        foreach ($registrations as $registration) {
+            if (!is_object($registration)) {
                 throw new InvalidArgumentException(
                     '$registrations of getAuthenticateData() method only accepts array of object.'
                 );
             }
 
-            $sig = new SignRequest();
-            $sig->appId = $this->appId;
-            $sig->keyHandle = $reg->keyHandle;
-            $sig->challenge = $challenge;
+            $signRequest = new SignRequest();
+            $signRequest->appId = $this->appId;
+            $signRequest->keyHandle = $registration->keyHandle;
+            $signRequest->challenge = $challenge;
 
-            $sigs[] = $sig;
+            $signatures[] = $signRequest;
         }
 
-        return $sigs;
+        return $signatures;
     }
 
     /**
@@ -307,7 +308,7 @@ class U2F
      * If the Error returned is ERR_COUNTER_TOO_LOW this is an indication of
      * token cloning or similar and appropriate action should be taken.
      */
-    public function doAuthenticate(array $requests, array $registrations, $response)
+    public function doAuthenticate(array $requests, array $registrations, $response): Registration
     {
         if (!is_object($response)) {
             throw new InvalidArgumentException('$response of doAuthenticate() method only accepts object.');
@@ -401,7 +402,7 @@ class U2F
             if ($counter > $registration->counter) {
                 $registration->counter = $counter;
 
-                return $registration;
+                return Convert::castObjectToRegistration($registration);
             }
 
             throw new Error('Counter too low.', ERR_COUNTER_TOO_LOW);

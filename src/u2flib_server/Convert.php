@@ -67,4 +67,32 @@ class Convert
 
         return $pem;
     }
+
+    /**
+     * @param object $object
+     *
+     * @return Registration
+     */
+    public static function castObjectToRegistration($object): Registration
+    {
+        $reg = new Registration();
+
+        if (property_exists($object, 'publicKey')) {
+            $reg->publicKey = $object->publicKey;
+        }
+
+        if (property_exists($object, 'certificate')) {
+            $reg->certificate = $object->certificate;
+        }
+
+        if (property_exists($object, 'counter')) {
+            $reg->counter = $object->counter;
+        }
+
+        if (property_exists($object, 'keyHandle')) {
+            $reg->keyHandle = $object->keyHandle;
+        }
+
+        return $reg;
+    }
 }

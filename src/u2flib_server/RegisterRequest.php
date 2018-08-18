@@ -9,13 +9,13 @@ namespace u2flib_server;
  */
 class RegisterRequest
 {
-    /** Protocol version */
+    /** @var string Protocol version */
     public $version = U2F_VERSION;
 
-    /** Registration challenge */
+    /** @var string Registration challenge */
     public $challenge;
 
-    /** Application id */
+    /** @var string Application id */
     public $appId;
 
     /**
