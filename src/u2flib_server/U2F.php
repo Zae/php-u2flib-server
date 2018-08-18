@@ -38,6 +38,12 @@ use ParagonIE\ConstantTime\Encoding;
 /** Constant for the version of the u2f protocol */
 const U2F_VERSION = 'U2F_V2';
 
+/** Constant for the type value in registration clientData */
+const REQUEST_TYPE_REGISTER = 'navigator.id.finishEnrollment';
+
+/** Constant for the type value in authentication clientData */
+const REQUEST_TYPE_AUTHENTICATE = 'navigator.id.getAssertion';
+
 /** Error for the authentication message not matching any outstanding
  * authentication request */
 const ERR_NO_MATCHING_REQUEST = 1;
@@ -74,6 +80,15 @@ const ERR_BAD_UA_RETURNING = 10;
 
 /** Error old OpenSSL version */
 const ERR_OLD_OPENSSL = 11;
+
+/** Error for the origin not matching the appId */
+const ERR_NO_MATCHING_ORIGIN = 12;
+
+/** Error for the type in clientData being invalid */
+const ERR_BAD_TYPE = 13;
+
+/** Error for bad user presence byte value */
+const ERR_BAD_USER_PRESENCE = 14;
 
 /** @internal */
 const PUBKEY_LEN = 65;
@@ -314,6 +329,10 @@ class U2F
         $clientData = Convert::base64uDecode($response->clientData);
         $decodedClient = json_decode($clientData);
 
+        if (isset($decodedClient->typ) && $decodedClient->typ !== REQUEST_TYPE_AUTHENTICATE) {
+            throw new Error('ClientData type is invalid', ERR_BAD_TYPE);
+        }
+
         foreach ($requests as $request) {
             if (!is_object($request)) {
                 throw new InvalidArgumentException(
@@ -330,6 +349,10 @@ class U2F
 
         if ($request === null) {
             throw new Error('No matching request found', ERR_NO_MATCHING_REQUEST);
+        }
+
+        if (isset($decodedClient->origin) && $decodedClient->origin !== $request->appId) {
+            throw new Error('App ID does not match the origin', ERR_NO_MATCHING_ORIGIN);
         }
 
         foreach ($registrations as $registration) {
@@ -365,6 +388,12 @@ class U2F
         $signature = substr($signData, 5);
 
         if (openssl_verify($dataToVerify, $signature, $pemKey, static::HASH_ALGORITHM) === 1) {
+            $upb = unpack('Cupb', substr($signData, 0, 1));
+
+            if ($upb['upb'] !== 1) {
+                throw new Error('User presence byte value is invalid', ERR_BAD_USER_PRESENCE);
+            }
+
             $ctr = unpack('Nctr', substr($signData, 1, 4));
             $counter = $ctr['ctr'];
 
