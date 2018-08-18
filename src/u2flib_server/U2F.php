@@ -418,7 +418,7 @@ class U2F
         $files = [];
         $dir = $this->attestDir;
 
-        if ($dir && $handle = opendir($dir)) {
+        if (is_dir($dir) && $handle = opendir($dir)) {
             while (($entry = readdir($handle)) !== false) {
                 if (is_file("$dir/$entry")) {
                     $files[] = "$dir/$entry";
@@ -426,6 +426,8 @@ class U2F
             }
 
             closedir($handle);
+        } elseif (is_file($dir)) {
+            $files[] = $dir;
         }
 
         return $files;
